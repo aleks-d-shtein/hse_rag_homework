@@ -7,9 +7,33 @@ from statistics import mean
 from time import perf_counter
 
 from openpyxl import Workbook, load_workbook
+from time import sleep, time
+
+import requests
 
 from eval.eval_functions import score_answer, score_context
 from eval.rag_example import RAG
+from rag.rag import CALLS
+
+RPM = 10
+
+
+def wait_for_window(reserve=4):
+    """Ждать до старта вопроса, чтобы его вызовы и судья не упёрлись в лимит. В time не входит."""
+    while sum(t > time() - 61 for t in CALLS) > RPM - reserve:
+        sleep(1)
+
+
+def judge(gold_answer, answer):
+    for attempt in range(6):
+        wait_for_window(reserve=1)
+        CALLS.append(time())
+        try:
+            return score_answer(gold_answer, answer)
+        except (requests.RequestException, ValueError, KeyError) as error:
+            print("судья:", error)
+            sleep(10 * (attempt + 1))
+    return score_answer(gold_answer, answer)
 
 
 def read_items(dataset_path):
@@ -42,11 +66,12 @@ def evaluate(dataset_path, output_path=None):
     system = RAG()
     results = []
     for item in read_items(dataset_path):
+        wait_for_window()
         start = perf_counter()
         prediction = system.rag(item["question"])
         elapsed = perf_counter() - start
         context_scores = score_context(item["gold_context"], prediction["context"])
-        answer_score = score_answer(item["gold_answer"], prediction["answer"])
+        answer_score = judge(item["gold_answer"], prediction["answer"])
         results.append({
             "question_id": item["question_id"],
             "question": item["question"],
@@ -58,6 +83,9 @@ def evaluate(dataset_path, output_path=None):
             "answer_correctness": answer_score["answer_correctness"],
             "time": elapsed,
         })
+        row = results[-1]
+        print(len(results), item["question_id"], "R=%.2f P=%.2f A=%d t=%.1f" % (
+            row["context_recall"], row["context_precision"], row["answer_correctness"], elapsed), flush=True)
     if not results:
         raise ValueError("В датасете нет вопросов.")
 

@@ -1,0 +1,10 @@
+{
+  "packages": ["python@3.12", "uv@latest"],
+  "env": {"UV_PYTHON_PREFERENCE": "only-system"},
+  "shell": {
+    "init_hook": ["uv sync -q --all-groups", ". .venv/bin/activate"],
+    "scripts": {
+      "eval": "uv run python -m eval.evaluator_excel \"$@\""
+    }
+  }
+}

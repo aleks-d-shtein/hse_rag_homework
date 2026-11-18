@@ -1,0 +1,22 @@
+[project]
+name = "hse-rag-homework"
+version = "0.1.0"
+description = "Agentic RAG по финансовой отчётности банков"
+requires-python = ">=3.12"
+dependencies = [
+    "langsmith>=0.15",
+    "numpy>=2.0",
+    "openpyxl>=3.1",
+    "pymupdf>=1.24",
+    "requests>=2.32",
+]
+
+[dependency-groups]
+# OCR сканов через macOS Vision, нужен только для пересборки data/pages.jsonl
+parse = [
+    "pyobjc-framework-Quartz>=10; sys_platform == 'darwin'",
+    "pyobjc-framework-Vision>=10; sys_platform == 'darwin'",
+]
+
+[tool.uv]
+package = false
