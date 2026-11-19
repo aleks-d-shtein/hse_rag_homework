@@ -65,7 +65,18 @@ def evaluate(dataset_path, output_path=None):
     dataset_path = Path(dataset_path)
     system = RAG()
     results = []
+    # каждый вопрос сразу дописываем сюда: если прогон упал, повторный запуск продолжит с места остановки
+    done_path = Path("outputs") / (dataset_path.stem + ".done.jsonl")
+    done_path.parent.mkdir(exist_ok=True)
+    done = {}
+    if done_path.exists():
+        for line in done_path.open(encoding="utf-8"):
+            row = json.loads(line)
+            done[row["question_id"]] = row
     for item in read_items(dataset_path):
+        if item["question_id"] in done:
+            results.append(done[item["question_id"]])
+            continue
         wait_for_window()
         start = perf_counter()
         prediction = system.rag(item["question"])
@@ -84,6 +95,8 @@ def evaluate(dataset_path, output_path=None):
             "time": elapsed,
         })
         row = results[-1]
+        with done_path.open("a", encoding="utf-8") as cache:
+            cache.write(json.dumps(row, ensure_ascii=False) + "\n")
         print(len(results), item["question_id"], "R=%.2f P=%.2f A=%d t=%.1f" % (
             row["context_recall"], row["context_precision"], row["answer_correctness"], elapsed), flush=True)
     if not results:

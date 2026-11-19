@@ -102,12 +102,17 @@ def llm(messages, tool_choice):
     }
     for attempt in range(6):
         CALLS.append(time.time())
-        response = requests.post(
-            LLM_URL,
-            headers={"x-api-key": os.environ["LLM_API_KEY"], "anthropic-version": "2023-06-01"},
-            json=body,
-            timeout=120,
-        )
+        try:
+            response = requests.post(
+                LLM_URL,
+                headers={"x-api-key": os.environ["LLM_API_KEY"], "anthropic-version": "2023-06-01"},
+                json=body,
+                timeout=60,
+            )
+        except requests.RequestException:
+            if attempt == 5:
+                raise
+            continue
         if response.status_code == 429 or response.status_code >= 500:
             time.sleep(float(response.headers.get("Retry-After", 5 * (attempt + 1))))
             continue
