@@ -33,8 +33,22 @@ BM25 0.687, эмбеддинги 0.695, вместе 0.787.
 взяла ответ, они и идут в context. Иначе precision был бы маленький: показал 6
 страниц, а нужна одна.
 
-Трассы пишутся в LangSmith (rag, каждый поиск и вызов модели), если включить
-LANGSMITH_TRACING.
+## langsmith
+
+Эксперимент на том же test с трассами и метриками:
+https://eu.smith.langchain.com/public/f6c5df14-bf4e-4840-9480-10bcb6377954/d
+
+В трассе видно весь путь вопроса: rag, внутри каждый search и каждый вызов
+модели. Это отдельный прогон, поэтому числа чуть другие, чем в Excel: recall
+0.758, precision 0.793, answer 0.851, time 5.37. Разница в пределах шума,
+заодно видно, что повторный прогон дает примерно то же самое.
+
+Запуск: eval/evaluator_langsmith.py сам создает датасет из jsonl, если его нет.
+
+```bash
+LANGSMITH_TRACING=true LANGSMITH_API_KEY=... LANGSMITH_ENDPOINT=https://eu.api.smith.langchain.com \
+  uv run python -m eval.evaluator_langsmith data/test.jsonl
+```
 
 ## что пробовал
 
